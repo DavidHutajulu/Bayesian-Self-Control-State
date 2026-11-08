@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Balon Poin: tes menunggu</title>
+<style>
+:root{--ink:#1B1340;--bg:#E6DEFF;--lemon:#FFD23F;--mute:#4A4270}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:17px/1.55 "Trebuchet MS","Segoe UI",system-ui,sans-serif}
+main{max-width:680px;margin:0 auto;padding:18px 14px 56px}
+.panel{background:#fff;border:3px solid var(--ink);border-radius:14px;box-shadow:7px 7px 0 var(--ink);padding:22px}
+h1{font-size:1.65rem;line-height:1.2;margin:0 0 12px;font-weight:900}
+h2{font-size:1.15rem;margin:24px 0 8px;font-weight:900}
+p{margin:0 0 12px;max-width:62ch}
+.mute{color:var(--mute);font-size:.92rem}
+button{font:inherit;font-weight:900;color:var(--ink);background:var(--lemon);border:3px solid var(--ink);border-radius:12px;box-shadow:4px 4px 0 var(--ink);padding:12px 24px;min-height:50px;cursor:pointer}
+button:active{transform:translate(3px,3px);box-shadow:1px 1px 0 var(--ink)}
+button.alt{background:#fff}
+button.take{width:100%;min-height:80px;font-size:1.7rem}
+button:disabled{opacity:.5}
+:focus-visible{outline:4px solid #6C4BFF;outline-offset:3px}
+.top{display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;font-weight:800;font-size:.95rem}
+.bar{height:10px;border:2px solid var(--ink);border-radius:6px;overflow:hidden;margin:8px 0 0}
+.bar i{display:block;height:100%;background:var(--ink)}
+.ball{width:min(300px,72vw);display:block;margin:6px auto}
+.row{display:flex;gap:14px;flex-wrap:wrap;margin:14px 0}
+.row>div{flex:1 1 240px;border:3px solid var(--ink);border-radius:12px;padding:14px}
+.row svg{width:70px;float:right;margin-left:8px}
+.row h3{margin:0 0 6px;font-size:1.1rem}
+.row ul{margin:0;padding-left:18px}
+.pr{display:grid;grid-template-columns:70px 1fr 44px;align-items:center;gap:8px;margin:6px 0;font-weight:800}
+.pr i{display:block;height:18px;border:2px solid var(--ink);background:var(--lemon);border-radius:4px}
+.nav{display:flex;justify-content:space-between;margin-top:18px;gap:10px}
+svg.ch{width:100%;height:auto}
+.leg{display:flex;flex-wrap:wrap;gap:4px 16px;font-size:.88rem;color:var(--mute)}
+.leg b{display:inline-block;width:14px;height:5px;margin-right:6px;vertical-align:middle}
+li{margin-bottom:6px}
+body{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+.tbl{border-collapse:collapse;width:100%;font-size:.92rem;margin:8px 0 14px}
+.tbl th,.tbl td{border:2px solid var(--ink);padding:6px 8px;text-align:left;vertical-align:top}
+.refs{padding-left:22px;font-size:.9rem}
+.hero{border:3px solid var(--ink);background:var(--lemon);border-radius:14px;padding:14px 18px;margin:14px 0;break-inside:avoid}
+.hl{font-weight:900}
+.hn{font-size:4.2rem;font-weight:900;line-height:1.05}
+.refs li{margin-bottom:8px;overflow-wrap:anywhere}
+@media print{
+body{background:#fff;font-size:11.5pt}
+main{max-width:none;padding:0}
+.panel{border:0;box-shadow:none;padding:0}
+.noprint{display:none!important}
+h2{break-after:avoid}
+svg.ch,.tbl,.refs li{break-inside:avoid}
+@page{margin:16mm}
+}
+</style>
+</head>
+<body>
+<main id="app"></main>
+<script>
+const ST=[
+ {n:"Hijau",c:"#12A87A",v0:1,g:0.5,hs:[0.05,0.09,0.14],sh:"circle",tk:450},
+ {n:"Merah",c:"#F2456E",v0:2,g:1,hs:[0.18,0.27,0.38],sh:"star",tk:350}];
+const GRACE=1,EPS=0.08,PER=50,EXTRA=5,PRIOR=[1/3,1/3,1/3],INK="#1B1340";
+const REG=["tenang","sedang","ganas"],REGE=["calm","medium","wild"];
+let SID="",STAMP="";
+function pid(){const e=document.getElementById("pid");return e?e.value.trim().replace(/[",\r\n]/g," "):""}
+function dl(name,H,R){
+  const txt="\ufeff"+[H].concat(R).map(r=>r.join(",")).join("\r\n");
+  const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([txt],{type:"text/csv;charset=utf-8"}));a.download=name;document.body.appendChild(a);a.click();a.remove();
+}
+const dv=x=>({wt:sec(x.n,x.s),bg:sec(x.Tb-x.Tt,x.s),cg:sec(x.n-x.Tb,x.s),a:ev(x.s,x.n,x.h),r:ev(x.s,x.Tb,x.h),t:ev(x.s,x.Tt,x.h),auto:!x.burst&&x.n>=capT(x.s)+EXTRA});
+function Phi(x){const z=Math.abs(x)/Math.SQRT2,t=1/(1+0.3275911*z),y=1-(((((1.061405429*t-1.453152027)*t)+1.421413741)*t-0.284496736)*t+0.254829592)*t*Math.exp(-z*z);return x>=0?0.5*(1+y):0.5*(1-y)}
+const GD=[],GS=[];for(let d=-6;d<=6.001;d+=.25)GD.push(d);for(let q=.25;q<=6.001;q+=.25)GS.push(q);
+function fitCens(L){
+  const rows=L.map(x=>({m:x.Tb,n:x.n,c:x.burst||x.n>=capT(x.s)+EXTRA}));
+  let best=-Infinity,bd=0,bs=1;
+  for(const d of GD)for(const q of GS){
+    let ll=0;
+    for(const r of rows){const mu=r.m+d;let p;
+      if(r.c)p=1-Phi((r.n-.5-mu)/q);
+      else p=Phi((r.n+.5-mu)/q)-(r.n===0?0:Phi((r.n-.5-mu)/q));
+      ll+=Math.log(Math.max(p,1e-12))}
+    if(ll>best){best=ll;bd=d;bs=q}
+  }
+  return [bd,bs];
+}
+function lossScore(L,d,q){
+  let a=0,b=0;
+  L.forEach(x=>{const K=capT(x.s)+EXTRA,e=[];for(let T=0;T<=K;T++)e.push(ev(x.s,T,x.h));
+    let ex=0,prev=0;for(let T=0;T<=K;T++){const c=T===K?1:Phi((T+.5-(x.Tb+d))/q);ex+=(c-prev)*e[T];prev=c}
+    const ref=e[Math.min(x.Tb,K)];a+=ref-ex;b+=ref-e.reduce((u,v)=>u+v,0)/e.length});
+  return b>1e-9?1-a/b:0;
+}
+function skill(L){if(L.length<5)return{d:0,sg:1,sc:0};const f=fitCens(L);return{d:f[0],sg:f[1],sc:lossScore(L,f[0],f[1])}}
+function csv(){
+  const H=["session_id","participant_id","timestamp","language","round","block","store","true_mood","pop_chance","tick_ms","take_tick","popped","auto_taken","points","wait_sec","rational_ideal_sec","true_ideal_sec","belief_gap_sec","control_gap_sec","ev_actual","ev_rational","ev_true_ideal","entropy_bits","mood_match","rational_ideal_tick","true_ideal_tick"];
+  const R=log.map((x,i)=>{const d=dv(x),b=x.burst;return [SID,pid(),STAMP,LG,i+1,Math.floor(i/PER)+1,x.s?"red":"green",REGE[x.reg],x.h,ST[x.s].tk,x.n,b?1:0,d.auto?1:0,x.pts,b?"":d.wt.toFixed(3),sec(x.Tb,x.s).toFixed(3),sec(x.Tt,x.s).toFixed(3),d.bg.toFixed(3),b?"":d.cg.toFixed(3),b?"":d.a.toFixed(4),d.r.toFixed(4),d.t.toFixed(4),x.H.toFixed(4),x.ok?1:0,x.Tb,x.Tt]});
+  dl("balon-poin-rounds-"+SID+".csv",H,R);
+}
+function csvSum(){
+  const T=L=>L.filter(x=>!x.burst),m=(a,f)=>a.length?+mean(a.map(f)).toFixed(4):"";
+  const MET=[["mean_points",L=>m(L,x=>x.pts)],["pop_rate",L=>m(L,x=>x.burst?1:0)],["mean_wait_sec",L=>m(T(L),x=>dv(x).wt)],["belief_gap_sec",L=>m(L,x=>dv(x).bg)],["control_gap_sec",L=>m(T(L),x=>dv(x).cg)],["control_gap_abs_sec",L=>m(T(L),x=>Math.abs(dv(x).cg))],["regret_belief",L=>m(T(L),x=>{const d=dv(x);return d.t-d.r})],["regret_control",L=>m(T(L),x=>{const d=dv(x);return d.r-d.a})],["regret_total",L=>m(T(L),x=>{const d=dv(x);return d.t-d.a})]];
+  const SUB=[["",()=>true],["_green",x=>x.s===0],["_red",x=>x.s===1],["_calm",x=>x.reg===0],["_medium",x=>x.reg===1],["_wild",x=>x.reg===2],["_odd",(x,i)=>i%2===0],["_even",(x,i)=>i%2===1]];
+  const tk=T(log),tot=log.reduce((a,x)=>a+x.pts,0),rate=f=>tk.length?+(tk.filter(f).length/tk.length).toFixed(4):"";
+  const H=["session_id","participant_id","timestamp","language","n_rounds","total_points","n_popped","n_auto_taken","mood_match_rate","mean_entropy_bits","early_take_rate","late_take_rate","ontarget_rate","points_efficiency"];
+  const V=[SID,pid(),STAMP,LG,log.length,tot,log.length-tk.length,tk.filter(x=>dv(x).auto).length,m(log,x=>x.ok?1:0),m(log,x=>x.H),rate(x=>x.n<x.Tb),rate(x=>x.n>x.Tb),rate(x=>x.n===x.Tb),+(tot/log.reduce((a,x)=>a+dv(x).t,0)).toFixed(4)];
+  const K=skill(log),Ko=skill(log.filter((x,i)=>i%2===0)),Ke=skill(log.filter((x,i)=>i%2===1)),ms=mean(log.map(x=>ST[x.s].tk))/1000,r4=v=>+v.toFixed(4);
+  H.push("control_skill","delta_ticks","sigma_ticks","delta_sec","sigma_sec","control_skill_odd","control_skill_even");V.push(r4(K.sc),K.d,K.sg,r4(K.d*ms),r4(K.sg*ms),r4(Ko.sc),r4(Ke.sc));
+  SUB.forEach(([sf,f])=>{const L=log.filter(f);MET.forEach(([n,g])=>{H.push(n+sf);V.push(g(L))})});
+  dl("balon-poin-summary-"+SID+".csv",H,[V]);
+}
+const REFS=[
+"Adams, R. P., & MacKay, D. J. C. (2007). Bayesian online changepoint detection. arXiv. https://doi.org/10.48550/arXiv.0710.3742",
+"Bayes, T. (1763). An essay towards solving a problem in the doctrine of chances. Philosophical Transactions of the Royal Society of London, 53, 370–418. https://doi.org/10.1098/rstl.1763.0053",
+"Behrens, T. E. J., Woolrich, M. W., Walton, M. E., & Rushworth, M. F. S. (2007). Learning the value of information in an uncertain world. Nature Neuroscience, 10(9), 1214–1221. https://doi.org/10.1038/nn1954",
+"Duckworth, A. L., & Kern, M. L. (2011). A meta-analysis of the convergent validity of self-control measures. Journal of Research in Personality, 45(3), 259–268. https://doi.org/10.1016/j.jrp.2011.02.004",
+"Enkavi, A. Z., Eisenberg, I. W., Bissett, P. G., Mazza, G. L., MacKinnon, D. P., Marsch, L. A., & Poldrack, R. A. (2019). Large-scale analysis of test–retest reliabilities of self-regulation measures. Proceedings of the National Academy of Sciences, 116(12), 5472–5477. https://doi.org/10.1073/pnas.1818430116",
+"Kidd, C., Palmeri, H., & Aslin, R. N. (2013). Rational snacking: Young children’s decision-making on the marshmallow task is moderated by beliefs about environmental reliability. Cognition, 126(1), 109–114. https://doi.org/10.1016/j.cognition.2012.08.004",
+"Lejuez, C. W., Read, J. P., Kahler, C. W., Richards, J. B., Ramsey, S. E., Stuart, G. L., Strong, D. R., & Brown, R. A. (2002). Evaluation of a behavioral measure of risk taking: The Balloon Analogue Risk Task (BART). Journal of Experimental Psychology: Applied, 8(2), 75–84. https://doi.org/10.1037/1076-898X.8.2.75",
+"McGuire, J. T., & Kable, J. W. (2013). Rational temporal predictions can underlie apparent failures to delay gratification. Psychological Review, 120(2), 395–410. https://doi.org/10.1037/a0031910",
+"Mischel, W., Ebbesen, E. B., & Zeiss, A. R. (1972). Cognitive and attentional mechanisms in delay of gratification. Journal of Personality and Social Psychology, 21(2), 204–218. https://doi.org/10.1037/h0032198",
+"Shannon, C. E. (1948). A mathematical theory of communication. Bell System Technical Journal, 27(3), 379–423. https://doi.org/10.1002/j.1538-7305.1948.tb01338.x",
+"Tobin, J. (1958). Estimation of relationships for limited dependent variables. Econometrica, 26(1), 24–36. https://doi.org/10.2307/1907382"];
+const app=document.getElementById("app");
+const val=(s,n)=>Math.min(10,ST[s].v0+ST[s].g*n);
+const capT=s=>Math.ceil((10-ST[s].v0)/ST[s].g);
+const ev=(s,T,h)=>Math.pow(1-h,Math.max(0,T-GRACE))*val(s,T);
+function bestT(s,w){let b=0,bv=-1;for(let T=0;T<=capT(s);T++){let v=0;ST[s].hs.forEach((h,i)=>v+=w[i]*ev(s,T,h));if(v>bv+1e-9){bv=v;b=T}}return b}
+const trans=b=>b.map(x=>x*(1-EPS)+(1-x)*EPS/2);
+function upd(b,s,n,burst){
+  const m=Math.max(0,n-GRACE),q=b.map((x,i)=>{const h=ST[s].hs[i];return x*(burst?h*Math.pow(1-h,m-1):Math.pow(1-h,m))});
+  const z=q.reduce((a,c)=>a+c,0);return q.map(x=>x/z);
+}
+const ent=b=>-b.reduce((a,x)=>a+(x>0?x*Math.log2(x):0),0);
+const am=b=>b.indexOf(Math.max(...b));
+const mean=a=>a.length?a.reduce((x,y)=>x+y,0)/a.length:0;
+const sec=(t,s)=>t*ST[s].tk/1000;
+const f1=x=>x.toFixed(1).replace(".",",");
+const fmt=v=>Number.isInteger(v)?String(v):f1(v);
+const pct=x=>Math.round(x*100)+"%";
+function shuffle(a){a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
+
+let plan,bi,rd,log,score,timer,cur,belief,reg,slide=0;
+let LG="id",VIEW,GO_AT=0;const t=(a,b)=>LG==="id"?a:b;
+function show(html,tog){app.innerHTML='<div class="panel">'+(tog?'<div class="noprint" style="text-align:right"><button class="alt" id="lg" style="min-height:34px;padding:2px 12px;box-shadow:2px 2px 0 var(--ink)">'+(LG==="id"?"English":"Indonesia")+'</button></div>':"")+html+"</div>";
+  if(tog)document.getElementById("lg").onclick=()=>{LG=LG==="id"?"en":"id";VIEW()}}
+
+function shape(s,v,bust){
+  const r=26+5.2*v,c=ST[s].c,fill=bust?"#fff":c,dash=bust?' stroke-dasharray="9 8"':"";
+  let g;
+  if(ST[s].sh==="circle")g='<circle cx="100" cy="100" r="'+r+'" fill="'+fill+'" stroke="'+INK+'" stroke-width="5"'+dash+"/>";
+  else{const p=[];for(let i=0;i<24;i++){const a=Math.PI*i/12-Math.PI/2,q=i%2?r*0.72:r;p.push((100+q*Math.cos(a)).toFixed(1)+","+(100+q*Math.sin(a)).toFixed(1))}
+    g='<polygon points="'+p.join(" ")+'" fill="'+fill+'" stroke="'+INK+'" stroke-width="5" stroke-linejoin="round"'+dash+"/>"}
+  return g+'<text x="100" y="116" text-anchor="middle" font-size="46" font-weight="900" fill="'+(bust?"#A3122D":INK)+'">'+fmt(bust?0:v)+"</text>";
+}
+function mini(s){return '<svg viewBox="0 0 200 200" aria-hidden="true">'+shape(s,6,false).replace(/<text.*<\/text>/,"")+"</svg>"}
+
+const SL=()=>[
+t('<h1>Tiup balon, simpan sebelum meletus</h1><p>Di tiap putaran ada balon yang makin besar, dan poin di dalamnya makin naik. Tekan <b>Ambil</b> untuk menyimpan poin yang tertulis. Kalau balon meletus lebih dulu, poin putaran itu hilang jadi 0.</p><p>Poin per putaran paling banyak <b>10</b>. Setelah balon penuh, poinnya berhenti naik, jadi menunggu lebih lama cuma menambah risiko.</p><p>Kamu punya waktu berpikir: balon muncul dulu 0,7 detik sebelum mulai naik, dan tik pertama selalu aman.</p><p>Skormu adalah jumlah poin yang berhasil disimpan.</p>',
+'<h1>Inflate the balloon, bank it before it pops</h1><p>Each round has a balloon that grows while its points rise. Press <b>Take</b> to bank the points shown. If the balloon pops first, you lose that round’s points (score 0).</p><p>A round is worth at most <b>10</b> points. Once the balloon is full the points stop rising, so waiting longer only adds risk.</p><p>You have time to think: the balloon appears 0.7 seconds before it starts rising, and the first tick is always safe.</p><p>Your score is the total of the points you bank.</p>'),
+t('<h1>Dua toko, dua watak</h1><p>Ada dua toko balon. Bentuknya beda supaya gampang dikenali.</p><div class="row"><div>'+mini(0)+'<h3>Toko Hijau (bulat)</h3><ul><li>Naik pelan: +0,5 poin tiap tik (1 tik = 0,45 detik)</li><li>Penuh (10) setelah ±8,1 detik</li><li>Peluang meletus per tik: 5%, 9%, atau 14%</li></ul><p style="margin-top:8px">Sabar dan jarang meletus, tapi hadiah besar butuh waktu.</p></div><div>'+mini(1)+'<h3>Toko Merah (bergerigi)</h3><ul><li>Naik kencang: +1 poin tiap tik (1 tik = 0,35 detik)</li><li>Penuh (10) setelah ±2,8 detik</li><li>Peluang meletus per tik: 18%, 27%, atau 38%</li></ul><p style="margin-top:8px">Cepat tapi sering meletus, jadi hadiah besar jarang sempat tercapai.</p></div></div><p><b>Tidak ada toko yang selalu lebih untung.</b> Hijau terbaik kalau kamu sabar dan suasananya tenang. Merah memberi hasil kecil tapi cepat, dan menggoda untuk terus menunggu. Di Merah yang ganas, meletus di angka kecil itu wajar.</p>',
+'<h1>Two stores, two temperaments</h1><p>There are two balloon stores. Their shapes differ so you can tell them apart.</p><div class="row"><div>'+mini(0)+'<h3>Green store (round)</h3><ul><li>Slow: +0.5 points per tick (1 tick = 0.45 s)</li><li>Full (10) after about 8.1 s</li><li>Pop chance per tick: 5%, 9%, or 14%</li></ul><p style="margin-top:8px">Patient and rarely pops, but the big payoff takes time.</p></div><div>'+mini(1)+'<h3>Red store (spiky)</h3><ul><li>Fast: +1 point per tick (1 tick = 0.35 s)</li><li>Full (10) after about 2.8 s</li><li>Pop chance per tick: 18%, 27%, or 38%</li></ul><p style="margin-top:8px">Quick but pops often, so the big payoff is rarely reached.</p></div></div><p><b>Neither store is always better.</b> Green is best when you are patient and the mood is calm. Red pays small but fast, and tempts you to keep waiting. In a wild Red store, popping at a low number is normal.</p>'),
+t('<h1>Suasana toko dan tebakan awalmu</h1><p>Tiap toko punya tiga suasana, seperti cuaca: <b>tenang</b>, <b>sedang</b>, <b>ganas</b>. Suasana menentukan peluang meletus (angka di slide sebelumnya, dari kecil ke besar). Kamu tidak diberi tahu sedang di suasana mana.</p><p>Suasana bisa berganti diam-diam: tiap putaran ada peluang 8% berganti, kira-kira sekali dalam 12 putaran.</p><p><b>Tebakan awal (prior).</b> Sebelum ada pengalaman, ketiga suasana sama mungkin:</p>'+PB(t("Tenang","Calm"))+PB(t("Sedang","Medium"))+PB(t("Ganas","Wild"))+'<p>Tiap blok dimulai dari titik ini, dengan suasana acak yang baru. Setelah itu, pakai putaran-putaran sebelumnya sebagai petunjuk: sering meletus cepat berarti mungkin ganas, sering penuh berarti mungkin tenang. Jangan terlalu percaya, karena suasana bisa berubah kapan saja.</p>',
+'<h1>Store mood and your starting guess</h1><p>Each store has three moods, like weather: <b>calm</b>, <b>medium</b>, <b>wild</b>. The mood sets the pop chance (the numbers on the previous slide, smallest to largest). You are not told which mood it is in.</p><p>The mood can change silently: each round has an 8% chance of switching, about once every 12 rounds.</p><p><b>Starting guess (prior).</b> Before any experience, all three moods are equally likely:</p>'+PB("Calm")+PB("Medium")+PB("Wild")+'<p>Every block starts from this point with a fresh random mood. After that, use earlier rounds as clues: frequent early pops suggest wild, frequent full balloons suggest calm. Do not trust them too much, because the mood can change at any time.</p>'),
+t('<h1>Alur sesi</h1><ul><li>Latihan 7 putaran di tiap toko (tidak dihitung).</li><li>Lalu 4 blok, masing-masing 50 putaran: total 200 putaran. Tiap blok satu toko, urutannya diacak.</li><li>Sekitar 15 sampai 17 menit. Ada jeda di antara blok.</li><li>Tombol: <b>Ambil</b> atau tekan spasi.</li><li>Tidak ada jawaban benar atau salah, dan tidak perlu menghitung. Tugasmu menebak suasana toko lalu memutuskan kapan berhenti.</li></ul><p class="mute">Ini prototipe untuk eksperimen, bukan alat diagnosis.</p>',
+'<h1>Session flow</h1><ul><li>7 practice rounds in each store (not counted).</li><li>Then 4 blocks of 50 rounds: 200 rounds in total. Each block uses one store, in random order.</li><li>About 15 to 17 minutes, with breaks between blocks.</li><li>Controls: <b>Take</b> or press space.</li><li>There are no right or wrong answers and no need to calculate. Your job is to guess the store’s mood and decide when to stop.</li></ul><p class="mute">This is an experimental prototype, not a diagnostic tool.</p>')];
+function PB(n){return '<div class="pr"><span>'+n+'</span><i style="width:33%"></i><span>33%</span></div>'}
+function intro(){
+  VIEW=intro;cur=null;GO_AT=Date.now()+400;
+  show(SL()[slide]+'<div class="nav"><button class="alt" id="pv"'+(slide?"":" disabled")+'>'+t("Kembali","Back")+'</button><button id="nx">'+(slide<3?t("Lanjut","Next")+" ("+(slide+1)+"/4)":t("Mulai latihan (spasi)","Start practice (space)"))+"</button></div>",true);
+  document.getElementById("pv").onclick=()=>{slide--;intro()};
+  document.getElementById("nx").onclick=()=>{if(!document.getElementById("nx"))return;if(slide<3){slide++;intro()}else begin()};
+}
+function begin(){
+  plan=[{s:0,n:7,prac:true},{s:1,n:7,prac:true}].concat(shuffle([0,1,0,1]).map(s=>({s,n:PER})));
+  bi=0;rd=0;log=[];score=0;SID=Math.random().toString(36).slice(2,10);STAMP=new Date().toISOString();blockIntro();
+}
+const nm=s=>t("Toko "+ST[s].n,(s?"Red":"Green")+" store");
+function blockIntro(){
+  VIEW=blockIntro;GO_AT=Date.now()+400;
+  const p=plan[bi],s=p.s,real=plan.slice(0,bi).filter(x=>!x.prac).length+1;
+  belief=PRIOR.slice();reg=Math.floor(Math.random()*3);
+  show('<h1>'+(p.prac?t("Latihan: ","Practice: "):t("Blok "+real+" dari 4: ","Block "+real+" of 4: "))+nm(s)+'</h1><svg viewBox="0 0 200 200" class="ball" style="width:150px" aria-hidden="true">'+shape(s,6,false).replace(/<text.*<\/text>/,"")+'</svg><p>'+(p.prac?t("Tujuh putaran untuk mencoba. Tidak dihitung.","Seven rounds to try it out. Not counted."):t("50 putaran di toko ini.","50 rounds in this store."))+t(" Suasana toko diacak ulang dan tebakanmu mulai dari awal: tenang, sedang, ganas masing-masing 33%."," The store mood is re-randomized and your guess starts over: calm, medium, wild at 33% each.")+'</p><button id="go">'+t("Mulai (spasi)","Start (space)")+"</button>",true);
+  document.getElementById("go").onclick=()=>{if(document.getElementById("go"))startRound()};
+}
+function startRound(){
+  const p=plan[bi],s=p.s;
+  if(rd>0&&Math.random()<EPS){const o=[0,1,2].filter(i=>i!==reg);reg=o[Math.floor(Math.random()*2)]}
+  const b=trans(belief);
+  cur={bi,s,reg,h:ST[s].hs[reg],Tb:bestT(s,b),Tt:bestT(s,[0,1,2].map(i=>i===reg?1:0)),H:ent(b),ok:am(b)===reg,n:0,done:false,b:b};
+  const real=plan.slice(0,bi).filter(x=>!x.prac).length+1;
+  show('<div class="top"><span>'+(p.prac?t("Latihan","Practice"):t("Blok ","Block ")+real+"/4")+" · "+nm(s)+'</span><span>'+t("Putaran ","Round ")+(rd+1)+"/"+p.n+'</span><span>'+t("Skor ","Score ")+score+'</span></div><div class="bar"><i style="width:'+(rd/p.n*100)+'%"></i></div><svg class="ball" id="ball" viewBox="0 0 200 200" role="img" aria-label="Balon">'+shape(s,val(s,0),false)+'</svg><button class="take" id="take">'+t("Ambil","Take")+'</button><p class="mute" id="msg" role="status" style="text-align:center;margin:12px 0 0">'+t("Pikirkan dulu. Tekan Ambil atau spasi sebelum meletus.","Think first. Press Take or space before it pops.")+'</p>');
+  document.getElementById("take").onclick=()=>{if(!cur.done)end(false)};
+  document.getElementById("take").focus();
+  timer=setTimeout(()=>{if(!cur.done)timer=setInterval(tick,ST[cur.s].tk)},700);
+}
+function tick(){
+  if(cur.done)return;
+  cur.n++;
+  if(cur.n>GRACE&&Math.random()<cur.h){end(true);return}
+  document.getElementById("ball").innerHTML=shape(cur.s,val(cur.s,cur.n),false);
+  if(cur.n>=capT(cur.s)+EXTRA)end(false);
+}
+function end(burst){
+  clearInterval(timer);clearTimeout(timer);cur.done=true;
+  const m=document.getElementById("msg");document.getElementById("take").disabled=true;
+  let pts=0;
+  if(burst){document.getElementById("ball").innerHTML=shape(cur.s,val(cur.s,cur.n-1),true);m.textContent=t("Meletus. Poin putaran ini hilang.","Popped. This round’s points are lost.")}
+  else{pts=val(cur.s,cur.n);if(!plan[cur.bi].prac)score+=pts;m.textContent=t("Tersimpan: ","Banked: ")+fmt(pts)+t(" poin"," points")}
+  if(!plan[cur.bi].prac)log.push({blk:cur.bi,s:cur.s,reg:cur.reg,h:cur.h,Tb:cur.Tb,Tt:cur.Tt,H:cur.H,ok:cur.ok,n:cur.n,burst:burst,pts:pts});
+  belief=upd(cur.b,cur.s,cur.n,burst);
+  setTimeout(next,900);
+}
+function next(){
+  rd++;
+  if(rd>=plan[bi].n){bi++;rd=0;if(bi>=plan.length){result();return}blockIntro();return}
+  startRound();
+}
+
+function chart(series,ymax,label){
+  const W=640,H=230,L=44,R=10,T=12,B=28,n=log.length;
+  const x=i=>L+(W-L-R)*(n<2?0:i/(n-1)),y=v=>T+(H-T-B)*(1-v/ymax);
+  let s='<svg class="ch" viewBox="0 0 '+W+" "+H+'" role="img" aria-label="'+label+'">';
+  [0,0.5,1].forEach(f=>{const v=ymax*f;s+='<line x1="'+L+'" x2="'+(W-R)+'" y1="'+y(v)+'" y2="'+y(v)+'" stroke="#CFC6EE"/><text x="'+(L-6)+'" y="'+(y(v)+4)+'" text-anchor="end" font-size="12" fill="#4A4270">'+f1(v)+"</text>"});
+  const real=plan.filter(p=>!p.prac);
+  real.forEach((p,k)=>{
+    const a=k*PER,e=a+PER-1;
+    if(k>0)s+='<line x1="'+((x(a-1)+x(a))/2)+'" x2="'+((x(a-1)+x(a))/2)+'" y1="'+T+'" y2="'+(H-B)+'" stroke="'+INK+'" stroke-dasharray="3 4"/>';
+    s+='<text x="'+((x(a)+x(e))/2)+'" y="'+(H-9)+'" text-anchor="middle" font-size="13" font-weight="700" fill="'+INK+'">'+ST[p.s].n+"</text>";
+  });
+  series.forEach(se=>{
+    let d="",o=false;
+    se.v.forEach((v,i)=>{if(v==null){o=false;return}d+=(o?"L":"M")+x(i).toFixed(1)+" "+y(v).toFixed(1)+" ";o=true});
+    if(!se.dots)s+='<path d="'+d+'" fill="none" stroke="'+se.c+'" stroke-width="2.4"'+(se.dash?' stroke-dasharray="6 4"':"")+"/>";
+    else se.v.forEach((v,i)=>{if(v!=null)s+='<circle cx="'+x(i).toFixed(1)+'" cy="'+y(v).toFixed(1)+'" r="2.6" fill="'+se.c+'"/>'});
+  });
+  return s+"</svg>";
+}
+function words(g,mid,hi,lo,ok){
+  if(Math.abs(g)<0.6)return ok;
+  return (g>0?hi:lo).replace("X",f1(Math.abs(g)));
+}
+function result(){
+  VIEW=result;cur=null;
+  const takes=log.filter(x=>!x.burst);
+  const bg=mean(log.map(x=>sec(x.Tb-x.Tt,x.s))),cg=mean(takes.map(x=>sec(x.n-x.Tb,x.s)));
+  const bursts=log.length-takes.length,ok=mean(log.map(x=>x.ok?1:0)),H=mean(log.map(x=>x.H));
+  const act=log.map(x=>x.burst?null:sec(x.n,x.s)),bel=log.map(x=>sec(x.Tb,x.s)),tru=log.map(x=>sec(x.Tt,x.s));
+  const ymax=Math.max(2,Math.ceil(Math.max(...act.filter(v=>v!=null),...bel,...tru)));
+  const rows=ST.map((s,k)=>"<tr><td>"+t(s.n,k?"Red":"Green")+"</td><td>+"+fmt(s.g)+t(" poin"," pts")+"</td><td>"+f1(s.tk/1000)+" s</td><td>±"+f1(capT(k)*s.tk/1000)+" s</td><td>"+s.hs.map(pct).join(", ")+"</td></tr>").join("");
+  const c=(a,b)=>t(a,b);
+  const fx=v=>LG==="id"?String(v).replace(".",","):String(v);
+  const ex=[[4,"3","2.080"],[5,"3.5","2.154"],[6,"4","2.187"],[7,"4.5","2.190"],[8,"5","2.168"]].map(r=>"<tr><td>"+r[0]+"</td><td>"+fx(r[1])+"</td><td>"+fx(r[2])+(r[0]===7?c(" (terbaik)"," (best)"):"")+"</td></tr>").join("");
+  const EXPL='<h2>'+c("Cara membaca grafik dan cara menghitungnya","How to read the chart and how it is calculated")+'</h2><ul><li>'+c("<b>Titik hitam</b>: kapan kamu benar-benar menekan Ambil. Hanya ada untuk putaran yang kamu Ambil.","<b>Black dots</b>: when you actually pressed Take. Only for rounds you banked.")+'</li><li>'+c("<b>Garis oranye (ideal rasional dari pengalamanmu)</b>: waktu berhenti terbaik menurut hitungan, kalau seseorang menalar dengan benar dari riwayat putaran yang sama persis denganmu. Ini bukan isi kepalamu dan bukan tebakan yang kamu ketik: tes ini tidak menanyakan tebakanmu.","<b>Orange line (rational ideal from your experience)</b>: the best stopping time by calculation, if someone reasoned correctly from exactly your round history. It is not what was in your head and not a guess you typed: the task does not ask for your guess.")+'</li><li>'+c("<b>Garis hijau (ideal sebenarnya)</b>: waktu berhenti terbaik kalau suasana asli toko diketahui pasti. Program tahu, kamu tidak.","<b>Green line (true ideal)</b>: the best stopping time if the store’s real mood were known for certain. The program knows it, you do not.")+'</li></ul><p><b>'+c("Cara hitung tiap putaran","How each round is calculated")+'</b></p><ol><li>'+c("Keyakinan awal tiap blok: tenang, sedang, ganas = 33% / 33% / 33% (prior).","Starting belief of each block: calm, medium, wild = 33% / 33% / 33% (prior).")+'</li><li>'+c("Setelah tiap putaran, keyakinan diperbarui dengan aturan Bayes: meletus cepat menaikkan “ganas”, balon yang sempat penuh menaikkan “tenang”. Lalu digeser sedikit karena suasana bisa berganti (8% per putaran).","After each round the belief is updated by Bayes’ rule: an early pop raises “wild”, a balloon that got full raises “calm”. It is then shifted slightly because the mood can switch (8% per round).")+'</li><li>'+c("Untuk tiap tik T, hitung hasil rata-rata kalau berhenti di sana: poin di tik itu × peluang selamat sampai sana, dirata-rata dengan bobot keyakinan.","For each tick T, compute the average payoff of stopping there: points at that tick × chance of surviving to it, averaged with the belief as weights.")+'</li><li>'+c("Ambil T dengan hasil rata-rata tertinggi. Itu garis oranye. Garis hijau dihitung sama, tapi dengan suasana asli sebagai satu-satunya kemungkinan.","Pick the T with the highest average payoff. That is the orange line. The green line is computed the same way, but with the real mood as the only possibility.")+'</li></ol><p>'+c("Contoh di Toko Hijau, dengan keyakinan 10% tenang, 30% sedang, 60% ganas (peluang meletus 5%, 9%, 14%):","Example in the Green store, with a belief of 10% calm, 30% medium, 60% wild (pop chances 5%, 9%, 14%):")+'</p><table class="tbl"><tr><th>'+c("Berhenti di tik","Stop at tick")+'</th><th>'+c("Poin","Points")+'</th><th>'+c("Hasil rata-rata","Average payoff")+'</th></tr>'+ex+'</table><p class="mute">'+c("Terbaik di tik 7, yaitu 7 × 0,45 ≈ 3,2 detik. Kalau keyakinan lebih condong ke tenang, waktunya jauh lebih lama.","Best at tick 7, i.e. 7 × 0.45 ≈ 3.2 seconds. If the belief leaned more toward calm, the time would be much longer.")+'</p><p>'+c("<b>Kenapa oranye dan hijau bisa beda:</b> dari pengalaman, suasana asli tidak pernah bisa diketahui pasti. Rentetan sial membuat keyakinan terlalu ganas, rentetan mujur membuatnya terlalu tenang, dan setelah suasana berganti keyakinan butuh beberapa putaran untuk menyusul. <b>Kenapa hitam dan oranye bisa beda:</b> keputusanmu bisa dipengaruhi kebiasaan, takut rugi, bosan, buru-buru, atau godaan untuk terus menunggu. Selisih itulah yang dilaporkan sebagai “apa yang kamu lakukan”.","<b>Why orange and green can differ:</b> from experience alone, the real mood can never be known for certain. A run of bad luck makes the belief too wild, a lucky run makes it too calm, and after the mood switches the belief takes a few rounds to catch up. <b>Why black and orange can differ:</b> your decision can be shaped by habit, fear of loss, boredom, hurry, or the temptation to keep waiting. That gap is what is reported as “what you did”.")+'</p>';
+  const SK=skill(log),msd=mean(log.map(x=>ST[x.s].tk))/1000;
+  const dT=Math.abs(SK.d)<0.5?c("mendekati ideal","close to ideal"):SK.d>0?c("cenderung menunggu lebih lama dari ideal","tends to wait longer than ideal"):c("cenderung berhenti lebih cepat dari ideal","tends to stop sooner than ideal");
+  const sT=SK.sg<1?c("sangat konsisten","very consistent"):SK.sg<2?c("cukup konsisten","fairly consistent"):c("cukup berubah-ubah","fairly variable");
+  const HERO='<div class="hero"><div class="hl">'+c("Skor Kontrol","Control Skill Score")+'</div><div class="hn">'+fx(SK.sc.toFixed(2))+'</div><p style="margin:6px 0">'+c("1 = selalu mengikuti keputusan terbaik dari pengalamanmu sendiri, 0 = sama kacaunya dengan menekan acak, negatif = lebih buruk dari acak.","1 = always following the best decision from your own experience, 0 = as messy as pressing at random, negative = worse than random.")+'</p><p style="margin:0">'+c("Bias (δ) ","Bias (δ) ")+fx((SK.d>0?"+":"")+SK.d.toFixed(1))+c(" tik (≈ "," ticks (≈ ")+fx((SK.d*msd).toFixed(2))+c(" detik): "," s): ")+dT+c(". Konsistensi (σ) ",". Consistency (σ) ")+fx(SK.sg.toFixed(1))+c(" tik: "," ticks: ")+sT+".</p><p class=\"mute\" style=\"margin:6px 0 0\">"+c("Kata-kata ini patokan kasar, belum dinormalkan pada data peserta.","These wordings are rough guides, not yet normalized on participant data.")+"</p></div>";
+  const SKX='<h2>'+c("Cara menghitung Skor Kontrol","How the Control Skill Score is calculated")+'</h2><ol><li>'+c("Tiap orang diasumsikan punya niat berhenti di sekitar waktu ideal rasional, ditambah bias δ, dengan sebaran acak σ.","Each person is assumed to intend to stop around the rational ideal time, plus a bias δ, with random spread σ.")+'</li><li>'+c("Putaran yang kamu Ambil memberi tahu niat berhentimu hampir tepat. Putaran yang meletus atau diambil otomatis hanya memberi tahu “setidaknya segini”. Semua putaran dipakai, tidak ada yang dibuang (data tersensor; Tobin, 1958).","A round you banked tells us your intended stop almost exactly. A round that popped or was auto-banked only tells us “at least this long”. Every round is used and none is discarded (censored data; Tobin, 1958).")+'</li><li>'+c("δ dan σ dipilih yang paling cocok dengan semua putaran sekaligus (kemungkinan terbesar).","δ and σ are chosen to fit all rounds at once (maximum likelihood).")+'</li><li>'+c("Dari δ dan σ, dihitung poin harapan yang hilang dibanding ideal rasional, lalu dibandingkan dengan perilaku acak. Skor = 1 − (kerugianmu ÷ kerugian acak).","From δ and σ, the expected points lost versus the rational ideal are computed and compared with random behavior. Score = 1 − (your loss ÷ random loss).")+'</li></ol><p class="mute">'+c("Skor ini bergantung pada model hitungan (bukan tebakan yang kamu ketik), ikut turun karena takut rugi, bosan, atau buru-buru, dan belum divalidasi. Pada simulasi agen buatan, skor estimasi berkorelasi 0,99 dengan skor asli, tetapi itu hanya menguji bahwa estimatornya berjalan bila modelnya benar.","This score depends on the calculation model (not a guess you typed), also drops with fear of loss, boredom, or hurry, and is not validated. In a simulation of artificial agents, the estimated score correlated 0.99 with the true score, but that only tests that the estimator works when the model is true.")+'</p>';
+  show('<h1>'+c("Laporan Balon Poin","Balloon Points Report")+'</h1><p class="mute">'+c("Dibuat ","Created ")+new Date().toLocaleString(LG==="id"?"id-ID":"en-GB")+". "+c("Prototipe, bukan alat diagnosis.","Prototype, not a diagnostic tool.")+'</p>'+HERO+'<p>'+c("Skor <b>","Score <b>")+score+c("</b> dari "+log.length+" putaran. Meletus di "," of "+log.length+" rounds</b>. Popped in ")+bursts+c(" putaran."," rounds.")+'</p>'+
+  '<h2>'+c("Apa yang ditunjukkan pengalamanmu","What your experience pointed to")+'</h2><p>'+words(bg,0,c("Rata-rata riwayat putaranmu mengarah ke kesimpulan bahwa toko lebih aman dari kenyataan: ideal rasional dari pengalamanmu lebih lama X detik dari ideal sebenarnya.","On average your round history pointed to stores being safer than they were: the rational ideal from your experience was X seconds longer than the true ideal."),c("Rata-rata riwayat putaranmu mengarah ke kesimpulan bahwa toko lebih berbahaya dari kenyataan: ideal rasional dari pengalamanmu lebih singkat X detik dari ideal sebenarnya.","On average your round history pointed to stores being more dangerous than they were: the rational ideal from your experience was X seconds shorter than the true ideal."),c("Pengalamanmu cukup akurat menunjukkan bahaya toko.","Your experience showed the stores’ danger fairly accurately."))+'</p>'+
+  '<h2>'+c("Apa yang kamu lakukan","What you did")+'</h2><p>'+words(cg,0,c("Kamu menunggu rata-rata X detik lebih lama dari ideal rasional berdasarkan pengalamanmu.","You waited on average X seconds longer than the rational ideal from your experience."),c("Kamu menekan Ambil rata-rata X detik lebih cepat dari ideal rasional berdasarkan pengalamanmu.","You pressed Take on average X seconds sooner than the rational ideal from your experience."),c("Waktu Ambilmu sejalan dengan ideal rasional dari pengalamanmu.","Your Take timing matched the rational ideal from your experience."))+'</p><p class="mute">'+c("Dua angka dipisah dengan sengaja: yang pertama soal seberapa jauh pengalamanmu menyesatkan, yang kedua soal selisih antara yang kamu lakukan dan yang rasional. Tes ini tidak menanyakan tebakanmu langsung.","The two numbers are kept apart on purpose: the first is about how far your experience misled, the second about the gap between what you did and what was rational. The task never asks for your guess directly.")+'</p>'+
+  '<h2>'+c("Dari tebakan awal ke pengalaman","From starting guess to experience")+'</h2><p>'+c("Tebakan awal (prior) 33% / 33% / 33% punya ketidakpastian 1,58 bit. Rata-rata selama main, ketidakpastian itu turun jadi "+f1(H)+" bit. Suasana yang paling mungkin menurut perhitungan Bayes cocok dengan suasana asli di "+pct(ok)+" putaran (kebetulan murni kira-kira 33%).","The starting guess (prior) of 33% / 33% / 33% carries 1.58 bits of uncertainty. Averaged over play, that uncertainty fell to "+f1(H).replace(",",".")+" bits. The most likely mood by Bayes’ rule matched the true mood in "+pct(ok)+" of rounds (pure chance is about 33%).")+'</p>'+
+  '<h2>'+c("Waktu tunggu tiap putaran (detik)","Wait time per round (seconds)")+'</h2>'+chart([{v:tru,c:"#12A87A",dash:true},{v:bel,c:"#E08A00"},{v:act,c:INK,dots:true}],ymax,c("Waktu Ambil aktual, ideal rasional dari pengalaman, dan ideal sebenarnya","Actual Take time, rational ideal from experience, and true ideal"))+
+  '<div class="leg"><span><b style="background:'+INK+'"></b>'+c("Waktu kamu menekan Ambil","When you pressed Take")+'</span><span><b style="background:#E08A00"></b>'+c("Ideal rasional dari pengalamanmu (hitungan)","Rational ideal from your experience (calculated)")+'</span><span><b style="background:#12A87A"></b>'+c("Ideal sebenarnya (suasana asli diketahui)","True ideal (real mood known)")+'</span></div>'+
+  SKX+EXPL+'<h2>'+c("Parameter sesi","Session parameters")+'</h2><table class="tbl"><tr><th>'+c("Toko","Store")+'</th><th>'+c("Naik per tik","Rise per tick")+'</th><th>'+c("Durasi tik","Tick length")+'</th><th>'+c("Penuh (10)","Full (10)")+'</th><th>'+c("Peluang meletus per tik (tenang, sedang, ganas)","Pop chance per tick (calm, medium, wild)")+'</th></tr>'+rows+'</table><p class="mute">'+c("Tik pertama selalu aman; balon muncul 0,7 detik sebelum naik. Peluang ganti suasana "+pct(EPS)+" per putaran. Prior 33% / 33% / 33% di awal tiap blok. 4 blok × 50 putaran, urutan toko diacak.","The first tick is always safe; the balloon appears 0.7 s before rising. Mood switch chance "+pct(EPS)+" per round. Prior 33% / 33% / 33% at the start of each block. 4 blocks × 50 rounds, store order randomized.")+'</p>'+
+  '<h2>'+c("Catatan","Notes")+'</h2><ul class="mute"><li>'+c("Perhitungan memakai model sederhana: peserta dianggap memperbarui tebakan dengan aturan Bayes (Bayes, 1763), dengan kemungkinan suasana berganti seperti pada model change-point (Behrens dkk., 2007; Adams & MacKay, 2007). Ketidakpastian diukur dengan entropi Shannon (Shannon, 1948). Hasilnya estimasi, bukan fakta tentang dirimu.","The calculation uses a simple model: the participant is assumed to update their guess by Bayes’ rule (Bayes, 1763), with moods that can switch as in change-point models (Behrens et al., 2007; Adams & MacKay, 2007). Uncertainty is measured with Shannon entropy (Shannon, 1948). The result is an estimate, not a fact about you.")+'</li><li>'+c("Menunggu dengan risiko hangus yang tidak diketahui mengikuti gagasan bahwa berhenti cepat bisa masuk akal bila lingkungan dinilai tidak bisa dipercaya (Kidd dkk., 2013; McGuire & Kable, 2013). Balon yang membesar mirip BART (Lejuez dkk., 2002), tetapi di sini risikonya berubah-ubah dan poin dibatasi 10. Menunggu demi hadiah lebih besar berasal dari tradisi tugas penundaan kepuasan (Mischel dkk., 1972).","Waiting under an unknown pop risk follows the idea that stopping early can be reasonable when the environment seems unreliable (Kidd et al., 2013; McGuire & Kable, 2013). The growing balloon resembles the BART (Lejuez et al., 2002), but here the risk shifts over time and points are capped at 10. Waiting for a larger reward comes from the delay-of-gratification tradition (Mischel et al., 1972).")+'</li><li>'+c("Tes perilaku untuk kontrol diri umumnya punya reliabilitas uji-ulang rendah dan hubungan lemah sampai sedang dengan kuesioner (Enkavi dkk., 2019; Duckworth & Kern, 2011). Tes ini belum divalidasi: rujukan di bawah menjadi dasar konsep, bukan bukti bahwa tes ini valid.","Behavioral self-control tasks generally show low test-retest reliability and weak to moderate links with questionnaires (Enkavi et al., 2019; Duckworth & Kern, 2011). This task is not validated: the references below support the concepts, not the validity of this task.")+'</li><li>'+c("Angka menahan diri hanya dihitung dari putaran yang kamu Ambil, karena putaran yang meletus tidak menunjukkan berapa lama kamu sebenarnya mau menunggu.","The holding-back number uses only rounds you banked, because a popped round does not show how long you actually meant to wait.")+'</li></ul>'+
+  '<h2>'+c("Rujukan","References")+'</h2><ol class="refs">'+REFS.map(r=>"<li>"+r+"</li>").join("")+'</ol><p class="mute">'+c("Rujukan menjadi dasar konsep. Parameter (peluang, kecepatan naik, batas 10 poin) adalah rancangan prototipe ini dan belum dikalibrasi pada data peserta.","References support the concepts. The parameters (chances, rise speed, 10-point cap) are this prototype’s design and have not been calibrated on participant data.")+'</p>'+
+  '<p class="noprint"><label>'+c("ID peserta (opsional): ","Participant ID (optional): ")+'<input id="pid" maxlength="40" style="font:inherit;border:3px solid #1B1340;border-radius:8px;padding:6px 10px"></label></p><p class="noprint"><button id="pdf">'+c("Unduh PDF","Download PDF")+'</button> <button class="alt" id="again">'+c("Main lagi","Play again")+'</button> <button class="alt" id="csv">'+c("CSV per putaran","CSV per round")+'</button> <button class="alt" id="csvs">'+c("CSV ringkasan","CSV summary")+'</button> <button class="alt" id="copy">'+c("Salin data (JSON)","Copy data (JSON)")+'</button></p><p class="mute noprint" id="cm" role="status">'+c("Unduh PDF membuka jendela cetak: pilih Simpan sebagai PDF.","Download PDF opens the print dialog: choose Save as PDF.")+'</p>',true);
+  document.getElementById("pdf").onclick=()=>{const d=document.title;document.title="Laporan-Balon-Poin-"+new Date().toISOString().slice(0,10);window.print();setTimeout(()=>{document.title=d},500)};
+  document.getElementById("csv").onclick=csv;
+  document.getElementById("csvs").onclick=csvSum;
+  document.getElementById("again").onclick=()=>{slide=0;intro()};
+  document.getElementById("copy").onclick=()=>{
+    const j=JSON.stringify(log.map((x,i)=>({putaran:i+1,blok:Math.floor(i/PER)+1,toko:ST[x.s].n,suasana:REG[x.reg],peluang_meletus:x.h,tik_ambil:x.n,meletus:x.burst,poin:x.pts,tik_ideal_tebakan:x.Tb,tik_ideal_asli:x.Tt,entropi_bit:+x.H.toFixed(3)})),null,1);
+    const cm=document.getElementById("cm");
+    (navigator.clipboard?navigator.clipboard.writeText(j):Promise.reject()).then(()=>cm.textContent=c("Data tersalin.","Data copied.")).catch(()=>cm.textContent=c("Gagal menyalin. Buka lewat alamat https atau file lokal.","Copy failed. Open via https or a local file."));
+  };
+}
+document.addEventListener("keydown",e=>{
+  if(e.code==="Space"&&cur&&!cur.done&&document.getElementById("take")){e.preventDefault();end(false)}
+});
+document.addEventListener("keyup",e=>{
+  if(e.code!=="Space"||Date.now()<GO_AT)return;
+  if(document.getElementById("go")){e.preventDefault();startRound();return}
+  if(document.getElementById("nx")&&slide===3){e.preventDefault();begin()}
+});
+intro();
+</script>
+</body>
+</html>

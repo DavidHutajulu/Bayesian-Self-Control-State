@@ -1,0 +1,20 @@
+{
+  "name": "balon-poin",
+  "version": "0.1.0",
+  "description": "Balon Poin: self-control task prototype",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "dist": "electron-builder --win portable --publish never"
+  },
+  "devDependencies": {
+    "electron": "^31.0.0",
+    "electron-builder": "^24.13.3"
+  },
+  "build": {
+    "appId": "id.selfcontrol.balonpoin",
+    "productName": "Balon Poin",
+    "files": ["main.js", "index.html"],
+    "win": { "target": "portable", "artifactName": "BalonPoin-${version}.exe" }
+  }
+}
